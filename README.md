@@ -9,7 +9,16 @@ As of yet this build is not very unstable and runs well, thanks to CKAN.
 
 Credit where it's due, some fragments of the code have been inspired from multiple origins: KOS documentation examples, KSP forums, KSP videos in YouTube, r/KSP, r/kos, ChatGPT 3.5, Jhonny O'Than's Twitch Plays KSP, etc.
 
+Both doHoverslam and goToMun, and cnstrn under a different name, were originally done by the YouTuber CheersKevin.
+
 Notes:
-- There's not much difference in fuel saving between lto2 and lto3. Also, they may crash for no apparent reason. Also also, they need the utils folder and the script inside to run in any body, and yes, they should be able to get you to orbit from the surface of any body.
-- In lto3 I'm trying to make it so it can launch you at any desired inclination from the ground. 
-- Don't trust doHoverslam to do the surface burn in any place that's not the mun or minmus and out of a vertical freefall
+- Launch to orbit development process from oldest to newest: hellolaunch, launch_to_orbit, mylto, mylto-X, mylto2, lto, lto2, lto3
+- There's not much difference in fuel saving between lto2 and lto3. Also, they may crash (the program first but not usually, and then the ship too if you didn't check the staging) for an error when loading the minimum safe height for the current body, but I can't find out why. Also also, they need the scripts: util/body_utils, plan_circularize, execute_node and deploy_fairing to run in any body, and yes, they should be able to get you to orbit from the surface of any body if there's enough deltaV. Also also also,sometimes plan_circularize may freak out when you are in a course to the apoapsis and begin to inflate ludicrously the deltaV you need for the maneuver, because you need less than 10 m/s of deltaV to circularize. To fix it (in-game), shutdown the script and try to run plan_circularize again on your own, either with smaller steps (not recommended because it takes a lot more time to reach to a solution to circularize) or with a bigger margin of error. Then run execute_node to do the burn.
+- In lto3 I'm trying to make it so it can launch you at any desired inclination from the ground, that feature is still unfinished.
+
+- Execute node  development process from oldest to newest: exe_node, ex_node, execute_node.
+- DO NOT TRUST ANY execute_node script if your current stage has less deltaV than what you need for the maneuver. That's a feature I'm not sure how to include in the script.
+
+- Don't trust doHoverslam to do the surface burn in any place that's not the Mun or Minmus and out of a vertical freefall, ship crash is highly probable otherwise.
+
+- I'm developing a landing script for any body without atmosphere, like doHoverslam, but haven't gotten to writing it down yet.
