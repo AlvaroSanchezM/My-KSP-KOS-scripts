@@ -7,7 +7,7 @@ Mods: kOS: Scriptable Autopilot System 1.2.1.0 , kOS-StockCamera 0.2.0.0 , Kerba
 
 As of yet this build is not very unstable and runs well, thanks to CKAN.
 
-Credit where it's due, some fragments of the code have been inspired from multiple origins: KOS documentation examples, KSP forums, KSP videos in YouTube, r/KSP, r/kos, ChatGPT 3.5, etc.
+Credit where it's due, some fragments of the code have been inspired from multiple origins: KOS documentation examples, KSP forums, KSP videos in YouTube, r/KSP, r/kos, ChatGPT 3.5, Jhonny O'Than's Twitch Plays KSP, etc.
 
 Notes:
 - There's not much difference in fuel saving between lto2 and lto3. Also, they may crash for no apparent reason. Also also, they need the utils folder and the script inside to run in any body, and yes, they should be able to get you to orbit from the surface of any body.
