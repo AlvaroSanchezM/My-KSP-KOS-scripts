@@ -22,3 +22,5 @@ Notes:
 - Don't trust doHoverslam to do the surface burn in any place that's not the Mun or Minmus and out of a vertical freefall, ship crash is highly probable otherwise.
 
 - I'm developing a landing script for any body without atmosphere, like doHoverslam, but haven't gotten to writing it down yet.
+
+- New phase of the node execution program: x_node.ks, able to calculate burn times more accurately. 
