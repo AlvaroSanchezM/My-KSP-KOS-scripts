@@ -1,7 +1,7 @@
 @lazyglobal off.
 
-run once "0:/tpksp/util/logging".
-run once "0:/tpksp/util/util".
+//run once "0:/tpksp/util/logging".
+//run once "0:/tpksp/util/util".
 
 // possiblethrust / possiblethrustat will work for engines that are not yet active, also takes thrust limiter into account
 // ispat works for inactive engines, but isp does not
@@ -46,6 +46,9 @@ function get_vessel_stage_info {
     // it assumes the fuel tanks for each stage will be full when that stage activates
     // which will not be true in e.g. a sustainer engine + SRB setup
     // need to attribute some fuel mass from later stages down into earlier ones
+
+    //AlvaroNOTE: now works with multiple engines per stage and with droppable tanks, but these MUST have the tag "FuelTank".
+    //Whenever a FuelTank's Resource:LiquidFuel reaches 0, the program will trigger a Staging event, so always check your staging and your FuelTank tags. 
 
     local engines is list().
     list engines in engines.
@@ -126,6 +129,27 @@ local function finalize_vessel_stage_info {
     }
 }
 
+local function get_combined_isp {
+  parameter engines.
+  local numerator is 0.
+  for e in engines {
+    set numerator to numerator + e:possiblethrust.
+  }
+  local mass_flow_rate is get_mass_flow_rate(engines).
+  if mass_flow_rate > 0 
+    return numerator / mass_flow_rate / constant:g0.
+  return 0.
+}
+
+local function get_mass_flow_rate {
+  parameter engines.
+  local result is 0.
+  for e in engines
+    if (e:ispat(0) > 0) // jet engines in space have 0 isp
+      set result to result + e:possiblethrustat(0) / (e:ispat(0) * constant:g0).
+  return result.
+}
+
 local function get_part_stage { //Sirve para detectar a qué "STAGE" pertenece cada parte/pieza, ES UTIL PARA DETECTAR EN QUÉ FASE NOS DESHAREMOS DE SU PESO y para calcular el peso final y la dv que aporta al cohete
     parameter part.
     local result is 0.
@@ -171,38 +195,51 @@ function maneuverBurnTime {
     local dv is mnv:deltav:mag.
     local remaining_dv is dv.
     local g0 is 9.80665. 
+    local calculatingM0 is false.
+    local m0 is 0.
+    local F is 0.
+    local isp is 0.
+    local t is 0.
+    local fuelFlow is 0.
     //Lista de stage info pero desde el final hacia el inicio
     for i in range(vessel_stage_info:length){
-        local stage_info is vessel_stage_info[vessel_stage_info:length - i - 1].
-        print "stage_info is "+ stage_info:engines.
-        if stage_info:dv > remaining_dv{
-            //calculate remaining ship mass
-                local m0 is ship:mass.
-            //calculate this stage's maxthrust in the event it has more than 1 engine.
-                local F is stage_info:engines[0]:maxpossiblethrust.
+        local stagenum is vessel_stage_info:length - i - 1.
+        local stage_info is vessel_stage_info[stagenum].
+        //print "stage_info is "+ stage_info:engines.
+        if not calculatingM0{
+            if stage_info:dv > remaining_dv{
+                print "+++Enough dV up-to stage "+stagenum+".".
+                //calculate remaining ship mass
+                set m0 to stage_info:mass.
+                //Still pending to be calculated fully.
+                set calculatingM0 to true.
+
+                //calculate this stage's maxthrust
+                set F to stage_info:thrust.
+
+                //calculate this stage's isp
+                set isp to stage_info:isp.
+
+                //calculate this stage's fuel flow 
+                    set fuelFlow to F / (isp * g0).
                 
-            //calculate this ship's isp
-            local isp is 0.
+                set remaining_dv to 0.
 
-            for en in stage_info:engines{
-                if en:ignition and not en:flameout{
-                    set isp to isp + (en:isp * (en:maxThrust / ship:maxthrust)).
-                }
+            }else{
+                print "---Not enough dV in stage "+stagenum+", will stage midburn.".
+                set remaining_dv to remaining_dv - stage_info:dv.
+                set burntime to burntime + stage_info:burntime.
             }
-
-            //calculate this stage's fuel flow in the event it has more than 1 engine.
-                local fuelFlow is F / (isp * g0).
-            
-            local mf is m0 / constant:e^(dV / (isp * g0) ).
-            local t is (m0 - mf) / fuelFlow.
-            set remaining_dv to 0.
-            set burntime to burntime + t.
-            break.
         }else{
-            set remaining_dv to remaining_dv - stage_info:dv.
-            set burntime to burntime + stage_info:burntime.
+            //Finish calculating m0 if there are any more stages remaining
+            set m0 to m0 + stage_info:mass.
         }
     }
+    local mf is m0 / constant:e^(dV / (isp * g0) ).
+    set t to (m0 - mf) / fuelFlow.
+    
+    set burntime to burntime + t.
+
     return burntime.
 }
 
@@ -223,13 +260,13 @@ local vessel_stage_info is get_vessel_stage_info().
 
 local nd to nextnode.
 
-if nd:deltav:mag < get_total_ship_dv(){
+if nd:deltav:mag < get_total_ship_dv(vessel_stage_info){
 
     //turn off SAS
     SAS off.
 
     //print out node's basic parameters - ETA and deltaV
-    print "Node in: " + round(nd:eta) + ", DeltaV: " + round(nd:deltav:mag).
+    print "Node in: " + round(nd:eta,1) + " secs, DeltaV: " + round(nd:deltav:mag,1) + " m/s".
 
     //calculate ship's max acceleration
     local max_acc to ship:maxthrust/ship:mass.
@@ -241,7 +278,7 @@ if nd:deltav:mag < get_total_ship_dv(){
     //de calcular burn duration
 
     local burn_duration to maneuverBurnTime(nd, vessel_stage_info).// nd:deltav:mag/max_acc.
-    print "Estimated burn duration: " + burn_duration + "s".
+    print "Estimated burn duration: " + round(burn_duration,1) + "s".
 
     //initial aproximation to node vector
     local np to nd:deltav. //points to node, don't care about the roll direction.
